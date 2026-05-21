@@ -52,6 +52,17 @@ describe('convertInput', () => {
     expect(result.warnings).toContain('Converted trojan-go:// to trojan:// and dropped Trojan-Go-only compatibility assumptions.');
   });
 
+  test('decodes Shadowrocket base64 VLESS authority into a v2rayNG REALITY link', () => {
+    const input = 'vless://OmNlYTQwYzkwLTZlYjYtNDMxOS04YzllLTc1ZjMyNWIxZjZmY0AxNTAuMjMwLjMyLjI0MTo0ODA0MQ?remarks=vl-reality-vision-ous&tls=1&peer=apple.com&udp=1&xtls=2&pbk=4RbHv_Ousk5_Vyetvv6nAMIt55DiOQFd4ftm9bPtm38&sid=ee33f007&ech=cloudflare.com%2Budp://1.1.1.1';
+
+    const result = convertInput(input);
+
+    expect(result.errors).toEqual([]);
+    expect(result.links).toEqual([
+      'vless://cea40c90-6eb6-4319-8c9e-75f325b1f6fc@150.230.32.241:48041?encryption=none&security=reality&type=tcp&sni=apple.com&pbk=4RbHv_Ousk5_Vyetvv6nAMIt55DiOQFd4ftm9bPtm38&sid=ee33f007&flow=xtls-rprx-vision#vl-reality-vision-ous',
+    ]);
+  });
+
   test('decodes whole base64 subscriptions before converting links', () => {
     const subscription = 'vless://22222222-2222-4222-8222-222222222222@vless.example.invalid:443?type=ws&security=tls&host=cdn.example.invalid&path=%2Fvless#VLESS Test';
 

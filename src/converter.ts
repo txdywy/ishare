@@ -115,16 +115,56 @@ function convertVmess(line: string) {
 }
 
 function convertVless(line: string) {
-  const url = new URL(line);
+  const url = parseVlessUrl(line);
   const params = url.searchParams;
   const generated = new URLSearchParams();
   const orderedKeys = ['encryption', 'security', 'type', 'host', 'sni', 'path', 'serviceName', 'alpn', 'fp', 'pbk', 'sid', 'spx', 'flow', 'allowInsecure'];
 
   generated.set('encryption', params.get('encryption') ?? 'none');
-  copyOrderedParams(params, generated, orderedKeys);
-  copyRemainingParams(params, generated);
 
-  return `vless://${url.username}@${url.hostname}:${url.port}?${stringifyParams(generated)}${formatFragment(url.hash)}`;
+  if (params.get('xtls') === '2' && !params.has('security')) {
+    generated.set('security', 'reality');
+  }
+
+  if (params.get('xtls') === '2' && !params.has('type')) {
+    generated.set('type', 'tcp');
+  }
+
+  if (params.has('peer') && !params.has('sni')) {
+    generated.set('sni', params.get('peer') ?? '');
+  }
+
+  const inferredVisionFlow = params.get('xtls') === '2' && !params.has('flow');
+
+  copyOrderedParams(params, generated, orderedKeys);
+
+  if (inferredVisionFlow) {
+    generated.set('flow', 'xtls-rprx-vision');
+  }
+
+  copyRemainingVlessParams(params, generated);
+
+  const fragment = url.hash || (params.has('remarks') ? `#${params.get('remarks')}` : '');
+
+  return `vless://${url.username}@${url.hostname}:${url.port}?${stringifyParams(generated)}${formatFragment(fragment)}`;
+}
+
+function parseVlessUrl(line: string) {
+  const url = new URL(line);
+
+  if (url.username || !isLikelyBase64Authority(url.hostname)) {
+    return url;
+  }
+
+  const decodedAuthority = decodeBase64(url.hostname);
+
+  if (!decodedAuthority.includes('@')) {
+    return url;
+  }
+
+  const normalizedAuthority = decodedAuthority.startsWith(':') ? decodedAuthority.slice(1) : decodedAuthority;
+
+  return new URL(`vless://${normalizedAuthority}${url.search}${url.hash}`);
 }
 
 function convertTrojan(line: string, context: ConversionContext) {
@@ -190,6 +230,16 @@ function copyRemainingParams(source: URLSearchParams, target: URLSearchParams) {
   });
 }
 
+function copyRemainingVlessParams(source: URLSearchParams, target: URLSearchParams) {
+  const shadowrocketOnlyKeys = new Set(['remarks', 'tls', 'peer', 'udp', 'xtls', 'ech']);
+
+  source.forEach((value, key) => {
+    if (!target.has(key) && !shadowrocketOnlyKeys.has(key)) {
+      target.set(key, key === 'path' ? ensureLeadingSlash(value) : value);
+    }
+  });
+}
+
 function stringifyParams(params: URLSearchParams) {
   return Array.from(params.entries())
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
@@ -222,6 +272,10 @@ function addUnique(list: string[], value: string) {
 
 function isAead2022(method: string) {
   return method.startsWith('2022-blake3-');
+}
+
+function isLikelyBase64Authority(value: string) {
+  return /^[A-Za-z0-9_-]+={0,2}$/.test(value);
 }
 
 function decodeBase64(input: string) {
