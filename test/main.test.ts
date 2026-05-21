@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
-import { describe, expect, test } from 'vitest';
+import QRCode from 'qrcode';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { initApp } from '../src/main';
+
+vi.mock('qrcode', () => ({
+  default: {
+    toCanvas: vi.fn(async () => undefined),
+  },
+}));
 
 function renderApp() {
   document.body.innerHTML = `
@@ -12,6 +19,7 @@ function renderApp() {
     <output id="summary"></output>
     <textarea id="plainOutput"></textarea>
     <textarea id="base64Output"></textarea>
+    <div id="qrList"></div>
     <ul id="warnings"></ul>
     <ul id="errors"></ul>
   `;
@@ -25,13 +33,18 @@ function renderApp() {
     summary: document.querySelector<HTMLOutputElement>('#summary')!,
     plainOutput: document.querySelector<HTMLTextAreaElement>('#plainOutput')!,
     base64Output: document.querySelector<HTMLTextAreaElement>('#base64Output')!,
+    qrList: document.querySelector<HTMLDivElement>('#qrList')!,
     warnings: document.querySelector<HTMLUListElement>('#warnings')!,
     errors: document.querySelector<HTMLUListElement>('#errors')!,
   };
 }
 
 describe('initApp', () => {
-  test('converts pasted links and renders copy-ready outputs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test('converts pasted links and renders copy-ready outputs', async () => {
     const app = renderApp();
     app.source.value = 'ss://YWVzLTEyOC1nY206dGVzdA@ss.example.invalid:8388#Name';
 
@@ -40,6 +53,14 @@ describe('initApp', () => {
     expect(app.summary.textContent).toBe('Converted 1 link.');
     expect(app.plainOutput.value).toBe('ss://YWVzLTEyOC1nY206dGVzdA@ss.example.invalid:8388#Name');
     expect(Buffer.from(app.base64Output.value, 'base64').toString('utf8')).toBe(app.plainOutput.value);
+    expect(app.qrList.children).toHaveLength(1);
+    await vi.waitFor(() => {
+      expect(QRCode.toCanvas).toHaveBeenCalledWith(
+        expect.any(HTMLCanvasElement),
+        app.plainOutput.value,
+        expect.objectContaining({ errorCorrectionLevel: 'M' }),
+      );
+    });
     expect(app.warnings.children).toHaveLength(0);
     expect(app.errors.children).toHaveLength(0);
   });
@@ -55,6 +76,7 @@ describe('initApp', () => {
     expect(app.plainOutput.value).toBe('');
     expect(app.base64Output.value).toBe('');
     expect(app.summary.textContent).toBe('Paste Shadowrocket links to begin.');
+    expect(app.qrList.children).toHaveLength(0);
     expect(app.warnings.children).toHaveLength(0);
     expect(app.errors.children).toHaveLength(0);
   });

@@ -191,6 +191,59 @@ output {
   text-align: right;
 }
 
+.qr-section {
+  margin-top: 22px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 16px;
+  background: rgba(239, 244, 222, 0.04);
+}
+
+.qr-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.qr-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  border: 1px solid rgba(239, 244, 222, 0.12);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(4, 6, 4, 0.46);
+}
+
+.qr-card h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
+}
+
+.qr-card canvas {
+  width: min(100%, 220px);
+  height: auto;
+  border-radius: 14px;
+  padding: 10px;
+  background: #fff;
+  justify-self: center;
+}
+
+.qr-value {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  margin: 0;
+  color: var(--muted);
+  font-family: "SFMono-Regular", "Cascadia Code", "Liberation Mono", monospace;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
 .messages {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -231,7 +284,8 @@ ul {
   }
 
   .converter,
-  .messages {
+  .messages,
+  .qr-list {
     grid-template-columns: 1fr;
   }
 
